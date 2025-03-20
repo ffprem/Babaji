@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLASH AI S1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            position: relative;
+            z-index: 1;
+        }
+        .box {
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #facc15;
+        }
+        .history {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .win {
+            color: #22c55e;
+        }
+        .loss {
+            color: #ef4444;
+        }
+        .pending {
+            color: #facc15;
+        }
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="container">
+        <h2>🚀 ERROR AI V1 🚀</h2>
+        <div class="box">
+            <div class="title">📅 Period:</div>
+            <p id="currentPeriod">Loading...</p>
+        </div>
+        <div class="box">
+            <div class="title">🌍 Prediction:</div>
+            <p id="prediction">Loading...</p>
+        </div>
+        <div class="box">
+            <div class="title">✅ Wins: <span id="winCount">0</span> | ❌ Losses: <span id="lossCount">0</span></div>
+        </div>
+        <div class="box history">
+            <table>
+                <tr><th>Period</th><th>Prediction</th><th>Result</th></tr>
+                <tbody id="history"></tbody>
+            </table>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 100 },
+                size: { value: 3 },
+                move: { speed: 2 }
+            }
+        });let winCount = 0, lossCount = 0;
+    let historyData = [];
+
+    function generatePeriodNumber() {
+        let now = new Date();
+        let year = now.getUTCFullYear();
+        let month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        let day = String(now.getUTCDate()).padStart(2, '0');
+        let hours = now.getUTCHours();
+        let minutes = now.getUTCMinutes();
+        let totalMinutes = hours * 60 + minutes;
+        return `${year}${month}${day}1000${10001 + totalMinutes}`;
+    }
+
+    async function fetchGameResult(periodNumber) {
+        try {
+            let response = await fetch("https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    pageSize: 10,
+                    pageNo: 1,
+                    typeId: 1,
+                    language: 0,
+                    random: "4a0522c6ecd8410496260e686be2a57c",
+                    signature: "334B5E70A0C9B8918B0B15E517E2069C",
+                    timestamp: Math.floor(Date.now() / 1000)
+                })
+            });
+            let data = await response.json();
+            let latestResult = data?.data?.list?.find(item => item.issueNumber === periodNumber);
+            return latestResult ? latestResult.number : null;
+        } catch (error) {
+            console.error("Error fetching game result:", error);
+            return null;
+        }
+    }
+
+    async function updatePrediction() {
+        let periodNumber = generatePeriodNumber();
+        document.getElementById("currentPeriod").innerText = periodNumber;
+        let prediction = "Big";
+        document.getElementById("prediction").innerText = prediction;
+        historyData.unshift({ period: periodNumber, prediction: prediction, result: "Pending" });
+        updateHistory();
+        checkWinLoss(periodNumber);
+    }
+
+    async function checkWinLoss(periodNumber) {
+        let actualResult = await fetchGameResult(periodNumber);
+        if (actualResult !== null) {
+            let result = actualResult >= 5 ? "Big" : "Small";
+            let historyItem = historyData.find(item => item.period === periodNumber);
+            if (historyItem) {
+                historyItem.result = historyItem.prediction === result ? "WIN" : "LOSS";
+                if (historyItem.result === "WIN") winCount++;
+                else lossCount++;
+                document.getElementById("winCount").innerText = winCount;
+                document.getElementById("lossCount").innerText = lossCount;
+                updateHistory();
+            }
+        } else {
+            setTimeout(() => checkWinLoss(periodNumber), 5000);
+        }
+    }
+
+    function updateHistory() {
+        let historyDiv = document.getElementById("history");
+        historyDiv.innerHTML = "";
+        historyData.forEach(item => {
+            let resultClass = item.result === "WIN" ? "win" : item.result === "LOSS" ? "loss" : "pending";
+            historyDiv.innerHTML += `<tr><td>${item.period}</td><td>${item.prediction}</td><td class="${resultClass}">${item.result}</td></tr>`;
+        });
+    }
+
+    updatePrediction();
+    setInterval(updatePrediction, 60000);
+</script>
+
+</body>
+</html>
